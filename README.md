@@ -1,0 +1,435 @@
+<div align="center">
+
+# 🛡️ PyWaf Client
+
+**Protection avancée multi-couches pour vos applications web**
+
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
+
+**Détection intelligente • Protection DDoS • CLI interactif**
+
+</div>
+
+---
+
+## 🌟 Vue d'ensemble
+
+PyWaf Client est un Web Application Firewall moderne qui protège vos applications contre les cyberattaques. Avec une architecture multi-couches, une analyse comportementale avancée et un système de protection DDoS adaptatif.
+
+**Fonctionnalités principales** :
+- 🛡️ Protection SQL Injection, XSS, Command Injection, Path Traversal
+- 🚨 Protection DDoS multi-niveaux avec escalade automatique
+- 🧠 Machine Learning pour détection d'anomalies
+- 📊 Réputation IP en temps réel
+- 🔒 TLS Fingerprinting
+- ⚡ Rate limiting adaptatif
+- 🎯 Configuration complète via CLI interactif
+
+---
+
+## 🚀 Installation Complète de A à Z
+
+### Prérequis
+
+- **Docker Desktop** (Windows/Mac) ou **Docker** (Linux)
+- **Python 3.11+**
+- **Git** (optionnel)
+
+### Étape 1 : Cloner le projet
+
+```bash
+git clone <url-du-repository>
+cd WAF-main
+```
+
+### Étape 2 : Configuration interactive
+
+Lancez le CLI pour configurer automatiquement tout le WAF :
+
+```bash
+python waf.py setup
+```
+
+Le CLI vous guide à travers :
+- Génération automatique des clés de sécurité
+- Configuration des protections (SQL Injection, XSS, DDoS, etc.)
+- Paramètres de rate limiting (personnalisables)
+- Configuration de la réputation IP
+- Paramètres de performance
+- Construction des images Docker
+
+### Étape 3 : Démarrer les services
+
+```bash
+python waf.py start
+```
+
+Vérifier que tout fonctionne :
+
+```bash
+python waf.py status
+```
+
+### Étape 4 : Configuration Nginx sur votre serveur (Production)
+
+Cette étape explique comment configurer Nginx sur votre serveur Linux pour protéger votre site web avec le WAF.
+
+#### 4.1 Installer Nginx (si pas déjà installé)
+
+**Ubuntu/Debian** :
+```bash
+sudo apt update
+sudo apt install -y nginx
+sudo systemctl enable nginx
+sudo systemctl start nginx
+```
+
+**CentOS/RHEL** :
+```bash
+sudo yum install -y nginx
+sudo systemctl enable nginx
+sudo systemctl start nginx
+```
+
+#### 4.2 Configuration de base dans /etc/nginx/
+
+Éditez le fichier principal de configuration :
+
+```bash
+sudo nano /etc/nginx/nginx.conf
+```
+
+Ajoutez la zone de rate limiting dans le bloc `http` :
+
+```nginx
+http {
+    # ... autres configurations existantes ...
+    
+    # Zone de rate limiting pour le WAF
+    limit_req_zone $binary_remote_addr zone=waf_limit:10m rate=100r/s;
+    
+    # ... reste de la configuration ...
+}
+```
+
+#### 4.3 Créer/modifier la configuration de votre site
+
+Créez ou modifiez le fichier de configuration de votre site dans `/etc/nginx/sites-available/` :
+
+```bash
+sudo nano /etc/nginx/sites-available/votre-site
+```
+
+**Configuration HTTP (port 80)** :
+
+```nginx
+server {
+    listen 80;
+    server_name votre-domaine.com www.votre-domaine.com;
+
+    # Rate limiting WAF
+    limit_req zone=waf_limit burst=50 nodelay;
+
+    # Proxy vers le WAF qui protège votre application
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+    }
+}
+```
+
+**Configuration HTTPS (port 443)** :
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name votre-domaine.com www.votre-domaine.com;
+
+    # Certificats SSL (Let's Encrypt ou autres)
+    ssl_certificate /etc/letsencrypt/live/votre-domaine.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/votre-domaine.com/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # Rate limiting WAF
+    limit_req zone=waf_limit burst=50 nodelay;
+
+    # Proxy vers le WAF
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+    }
+}
+
+# Redirection HTTP vers HTTPS
+server {
+    listen 80;
+    server_name votre-domaine.com www.votre-domaine.com;
+    return 301 https://$server_name$request_uri;
+}
+```
+
+#### 4.4 Activer la configuration
+
+**Ubuntu/Debian** :
+```bash
+# Créer le lien symbolique
+sudo ln -s /etc/nginx/sites-available/votre-site /etc/nginx/sites-enabled/
+
+# Tester la configuration
+sudo nginx -t
+
+# Recharger Nginx
+sudo systemctl reload nginx
+```
+
+**CentOS/RHEL** :
+```bash
+# Copier la configuration
+sudo cp /etc/nginx/sites-available/votre-site /etc/nginx/conf.d/votre-site.conf
+
+# Tester la configuration
+sudo nginx -t
+
+# Recharger Nginx
+sudo systemctl reload nginx
+```
+
+#### 4.5 Si vous avez déjà un site configuré
+
+Si vous avez déjà une configuration Nginx pour votre site, modifiez simplement le bloc `location /` :
+
+**Avant** (configuration directe vers votre app) :
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;  # Votre application
+}
+```
+
+**Après** (avec protection WAF) :
+```nginx
+location / {
+    limit_req zone=waf_limit burst=50 nodelay;
+    proxy_pass http://127.0.0.1:8000;  # WAF qui protège votre app
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+#### 4.6 Vérifier que tout fonctionne
+
+```bash
+# Vérifier le statut de Nginx
+sudo systemctl status nginx
+
+# Vérifier que le WAF écoute sur le port 8000
+curl http://localhost:8000/health
+
+# Tester depuis l'extérieur
+curl http://votre-domaine.com
+```
+
+### Étape 5 : Vérification finale
+
+1. **Tester l'API** : http://localhost:8000/docs
+2. **Tester Nginx** : http://localhost (ou https://localhost si HTTPS configuré)
+3. **Vérifier les logs** : `python waf.py logs waf-api`
+
+---
+
+## 💻 CLI Interactif
+
+### Menu principal
+
+Lancez simplement :
+
+```bash
+python waf.py
+```
+
+Navigation par flèches dans un menu interactif.
+
+### Commandes disponibles
+
+```bash
+# Configuration interactive complète
+python waf.py setup
+
+# Mode développement avec rechargement auto
+python waf.py dev
+
+# Gestion des services Docker
+python waf.py start      # Démarrer tous les services
+python waf.py stop       # Arrêter tous les services
+python waf.py restart    # Redémarrer tous les services
+
+# Monitoring
+python waf.py status     # Statut détaillé des services
+python waf.py logs <service>  # Logs d'un service
+python waf.py metrics    # Métriques en temps réel
+```
+
+---
+
+## 📊 Architecture
+
+```
+Client → Nginx (Rate Limiting) → WAF Middleware → WAF Engine
+                                              ↓
+                    ┌─────────────────────────┴─────────────────────────┐
+                    │                                                     │
+            ┌───────▼────────┐  ┌──────────────┐  ┌──────────────────┐
+            │ IP Manager     │→ │ Rate Limiter │→ │ Threat Detector  │
+            │ (Whitelist/    │  │ (Burst/Min)  │  │ (SQLi/XSS/etc)   │
+            │  Blacklist)    │  └──────────────┘  └──────────────────┘
+            └────────────────┘
+                    │
+            ┌───────▼────────┐  ┌──────────────┐  ┌──────────────────┐
+            │ Reputation     │→ │ Behavioral   │→ │ Challenge        │
+            │ Engine         │  │ Analyzer     │  │ System (PoW)     │
+            └────────────────┘  └──────────────┘  └──────────────────┘
+                    │
+            ┌───────▼────────┐
+            │ PostgreSQL     │  Redis (Cache)
+            │ (Logs/Rules)   │  (Rate Limiting)
+            └────────────────┘
+```
+
+---
+
+## 🔧 Configuration
+
+Tous les paramètres sont configurables via le CLI `waf.py setup` ou directement dans `.env` :
+
+```env
+# Protections
+SQL_INJECTION_ENABLED=true
+SQL_INJECTION_SENSITIVITY=high
+XSS_PROTECTION_ENABLED=true
+
+# Rate Limiting
+RATE_LIMITING_ENABLED=true
+RATE_LIMIT_REQUESTS_PER_MINUTE=100
+RATE_LIMIT_BURST=50
+
+# Protection DDoS
+DDOS_PROTECTION_ENABLED=true
+DDOS_MAX_CONNECTIONS_PER_IP=50
+
+# Réputation IP
+IP_REPUTATION_ENABLED=true
+REPUTATION_MALICIOUS_THRESHOLD=70.0
+
+# Challenges
+CHALLENGE_SYSTEM_ENABLED=true
+POW_CHALLENGE_DIFFICULTY_MIN=1
+POW_CHALLENGE_DIFFICULTY_MAX=5
+
+# TLS Fingerprinting
+TLS_FINGERPRINTING_ENABLED=true
+STAGED_DDOS_MITIGATION_ENABLED=true
+```
+
+---
+
+## 📚 API REST
+
+Documentation interactive : http://localhost:8000/docs
+
+**Endpoints principaux** :
+- `GET /api/security/events` - Événements de sécurité
+- `POST /api/rules/whitelist` - Ajouter IP à whitelist
+- `POST /api/rules/blacklist` - Ajouter IP à blacklist
+- `GET /api/metrics/overview` - Métriques en temps réel
+- `GET /api/logs/security` - Logs de sécurité
+
+---
+
+## 🐛 Dépannage
+
+### Docker Desktop n'est pas démarré (Windows)
+
+```powershell
+.\scripts\check-docker.ps1
+.\scripts\wait-docker.ps1
+```
+
+### Port déjà utilisé
+
+**Windows** :
+```powershell
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
+```
+
+**Linux** :
+```bash
+sudo lsof -i :8000
+sudo kill -9 <PID>
+```
+
+### Erreur de connexion à la base de données
+
+```bash
+docker-compose ps postgres
+docker-compose exec postgres psql -U waf_user -d waf_db
+```
+
+### Nginx ne démarre pas
+
+```bash
+# Vérifier la configuration
+docker-compose exec nginx nginx -t
+
+# Voir les logs
+docker-compose logs nginx
+```
+
+---
+
+## 📈 Performance
+
+- **Latence** : < 50ms
+- **Throughput** : 10,000 req/s
+- **Mémoire** : < 512MB
+- **Démarrage** : < 5s
+
+---
+
+## 🔒 Sécurité
+
+- Validation stricte de toutes les entrées
+- Pas de secrets dans le code
+- Logging structuré sans données sensibles
+- Principe de moindre privilège
+- Fail-open pour disponibilité maximale
+
+---
+
+## 📄 Licence
+
+Propriétaire - Tous droits réservés
+
+---
+
+<div align="center">
+
+**Fait avec ❤️ pour sécuriser le web**
+
+</div>

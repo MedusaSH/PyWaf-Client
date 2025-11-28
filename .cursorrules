@@ -1,0 +1,203 @@
+
+
+Tu es l'assistant de développement de ce projet. Applique strictement les règles suivantes pour toutes tes actions et suggestions.
+
+## 1. STYLE ET STRUCTURE
+
+### Conventions de nommage
+- interdiction d'avoir d'autre fichier .md dans le project que le Readme qui dois etre update a chaque ajout important
+- **Python** : snake_case pour variables/fonctions, PascalCase pour classes
+- **JavaScript/TypeScript** : camelCase pour variables, PascalCase pour composants React
+- **Nommage hybride français/anglais** :
+  - Variables métier en français : `utilisateurActif`, `donneesProfil`, `tacheCourante`
+  - Fonctions techniques en anglais : `fetchUserData()`, `validatePayload()`, `computeHash()`
+  - Constantes mixtes : `MAX_RETRY_COUNT`, `TEMPS_EXPIRATION_CACHE`
+  - 
+
+### Indentation
+- 2 espaces pour JS/TS/HTML/CSS
+- 4 espaces pour Python
+- Respect strict PEP8 pour Python
+
+### Commentaires
+- **ZERO commentaire** dans le code 
+- Préférer fonctions avec noms explicites et tests plutôt que commentaires longs
+- **ZERO console.log/print/debug** ou messages de debug
+
+### Emojis
+- Ne place aucun emoji dans le code, les messages d'exemple ou snippets
+
+## 2. SÉCURITÉ ET DONNÉES SENSIBLES
+
+### Secrets
+- **JAMAIS** de secrets (clefs, mots de passe, tokens) dans le code ou snippets
+- Utiliser secrets manager (HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager, Azure Key Vault)
+- Variables d'environnement pour les secrets
+- Interdire commits contenant `.env`, `*.pem`, `*.key`, `credentials.json`
+- Proposer pre-commit hook (git-secrets / detect-secrets)
+
+### Input validation
+- Valider et assainir toute entrée utilisateur côté serveur et client
+- Utiliser schémas (Zod, Joi, pydantic) pour validation
+- Jamais `eval`, `exec`, `new Function`, accès dynamique non maîtrisé
+- Aucune requête non validée
+
+### Authentification
+- Solutions robustes (OAuth2, OpenID Connect, JWT bien configuré)
+- Pas d'authentification maison
+- Principe de moindre privilège
+- Hashing sécurisé (bcrypt/argon2/PBKDF2)
+
+### Logs et erreurs
+- Ne jamais logger des secrets
+- Politique de logging : sanitisation, conservation limitée
+- Messages d'erreur sans stack traces en production
+
+## 3. QUALITÉ ET TESTS
+
+### Tests
+- Toute fonctionnalité doit être accompagnée de tests unitaires et d'intégration que tu supprime apres le test
+- Couverture unitaire minimum selon projet
+- Tests des flows critiques (auth, paiement, endpoints publiques)
+- Chaque PR doit inclure tests unitaires
+
+### Linting
+- ESLint + Prettier (ou équivalent) avec règles partagées
+- Ne pas désactiver règles de sécurité sans justification documentée
+- Typage strict (TypeScript/mypy/types Go)
+
+### Architecture
+- SOLID, séparation des responsabilités
+- Pas de duplication
+- Structures explicites et prévisibles
+- Composants stateless quand possible
+- Gestion d'état centralisée si nécessaire
+
+## 4. DÉPENDANCES
+
+### Scanning
+- Activer scans réguliers (dependabot/snyk/retire.js/trivy)
+- Seuils d'alerte : CVE critique bloque merge
+- Vérifier vulnérabilités avant toute modification
+- Documenter procédure de remediation
+
+
+
+## 5. CI/CD ET DÉPLOIEMENT
+
+### Auto-run
+- Par défaut, auto-run OFF pour environnements prod
+- Si auto-run activé en local, définir deny-list explicite :
+  - `rm -rf /*`
+  - `npm i` sans lockfile
+  - `pip install` sans requirements
+  - `git push --force`
+  - Toute commande modifiant l'état système sans confirmation
+
+### Déploiement
+- Aucune commande de push ou commit automatique en production sans revue humaine
+- Déploiement en production : minimum 2 approbateurs
+- Pipeline séparé pour production
+- Blue/green ou canary preferred
+- Procédure de rollback automatisée
+- Tests post-déploiement (smoke tests)
+
+### Validation PR
+- Chaque PR déclenche linters, tests unitaires et scans SAST
+- Aucune PR mergée si checks critiques non passés
+
+### Secrets CI
+- Secrets CI uniquement depuis secrets managers
+- Jamais exposés dans les logs
+
+## 6. INFRASTRUCTURE
+
+### Containers
+- Images minimales
+- Scans d'images (trivy)
+- Signatures d'images si possible
+
+### Checklist pre-deploy
+- Scan secrets
+- Scan vulnérabilités
+- Tests automatisés
+
+## 7. PATTERNS D'OPTIMISATION
+
+### Cache
+- Cache avec TTL, invalidation et warmup
+- Pattern signature :
+  ```python
+  cache = {}
+  def get_cached(key, factory, ttl=300):
+      item = cache.get(key)
+      if item and (time.time() - item["t"]) < ttl:
+          return item["v"]
+      v = factory()
+      cache[key] = { "v": v, "t": time.time() }
+      return v
+  ```
+
+### Performance
+- Batch processing pour tâches répétitives
+- Préallocation mémoire
+- Pooling d'objets et buffers
+- Lazy loading de modules lourds
+- Pagination automatique
+- Debounce/throttle internes
+
+### Base de données
+- Requêtes préparées systématiquement
+- Index sur colonnes de filtrage/tri fréquentes
+- Pagination cursor-based plutôt que LIMIT/OFFSET
+- Batch pour INSERT/UPDATE massifs
+- Pooling de connexions DB
+- Éviter N+1 queries avec JOINs intelligents
+
+## 8. LANGAGES SPÉCIFIQUES
+
+### Python
+- Respect strict PEP8
+- Typage obligatoire (mypy)
+- Générateurs pour limiter mémoire
+- Préférence aux comprehensions
+- pathlib pour les chemins
+- Validation via pydantic/dataclasses
+- Séparation stricte I/O / logique métier
+
+### JavaScript/TypeScript
+- `const` par défaut, `let` si nécessaire, jamais `var`
+- Imports/exports ES obligatoires
+- Structures immuables (Object.freeze si nécessaire)
+- Zéro manipulation dangereuse du DOM
+- Validation stricte des entrées
+- Optimisation des allocations dans les boucles
+
+### React
+- Composants purs, isolés, une responsabilité chacun
+- Hooks personnalisés pour logique réutilisable
+- `useMemo`/`useCallback` seulement si bénéfice mesurable
+- State minimal : pas de global inutile
+- Lazy import pour code splitting
+- Clés stables pour listes (id, pas index)
+- Zéro manipulation manuelle du DOM
+
+## 9. ACCESSIBILITÉ ET INTERNATIONALISATION
+
+- Frontend : respecter standards d'accessibilité (a11y) basiques
+- Prévoir i18n si utilisateurs multilingues
+
+## 10. ACTIONS À HAUT RISQUE
+
+- Si une action peut exfiltrer des données sensibles ou exécuter des commandes locales dangereuses, **ARRÊTER** et demander validation humaine explicite
+- Validation explicite pour modifications système
+- Pas d'installations automatiques de dépendances sans validation
+
+## 11. OBJECTIF GLOBAL
+
+Le code doit refléter 10 ans d'expérience :
+- Efficace, stable, lisible, sécurisé
+- Sans complexité inutile
+- Production-ready immédiatement
+- Solutions pragmatiques, éprouvées et scalables
+- Privilégier les solutions éprouvées aux patterns académiques
