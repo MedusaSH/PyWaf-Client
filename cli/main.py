@@ -43,6 +43,46 @@ def print_gradient_title(text: str):
     console.print(title)
     console.print()
 
+def generate_nginx_config(rate_limit_requests: int, rate_limit_burst: int, ddos_max_connections: int):
+    """Génère la configuration Nginx adaptée aux paramètres du WAF avec commentaires explicatifs"""
+    rate_per_second = max(1, rate_limit_requests // 60)
+    
+    nginx_config = f"""events {{
+    worker_connections 1024;
+}}
+
+http {{
+    upstream waf_backend {{
+        server waf-api:8000;
+    }}
+
+    limit_req_zone $binary_remote_addr zone=waf_limit:10m rate={rate_per_second}r/s;
+    limit_conn_zone $binary_remote_addr zone=waf_conn_limit:10m;
+
+    server {{
+        listen 80;
+        server_name _;
+
+        limit_conn waf_conn_limit {ddos_max_connections};
+
+        location / {{
+            limit_req zone=waf_limit burst={rate_limit_burst} nodelay;
+            proxy_pass http://waf_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Port $server_port;
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }}
+    }}
+}}
+"""
+    return nginx_config
+
 def print_banner():
     console.print()
     banner = gradient_text("PyWaf Client")
@@ -641,6 +681,23 @@ MAX_MEMORY_MB={max_memory_mb}
     
     console.print("\n[bold green]OK[/bold green] Fichier .env créé avec succès\n")
     console.print("[dim]Configuration complète sauvegardée dans .env[/dim]\n")
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True
+    ) as progress:
+        task = progress.add_task("[cyan]Génération de la configuration Nginx...", total=None)
+        nginx_config = generate_nginx_config(rate_limit_requests, rate_limit_burst, ddos_max_connections)
+        nginx_file = Path("nginx/nginx.conf")
+        nginx_file.parent.mkdir(exist_ok=True)
+        nginx_file.write_text(nginx_config, encoding='utf-8')
+        time.sleep(0.5)
+    
+    console.print("[bold green]OK[/bold green] Configuration Nginx adaptée avec succès\n")
+    console.print(f"[dim]Rate limiting: {rate_limit_requests} req/min ({max(1, rate_limit_requests // 60)} req/s), burst: {rate_limit_burst}[/dim]\n")
+    console.print(f"[dim]Limite de connexions DDoS: {ddos_max_connections} connexions par IP[/dim]\n")
     
     menu = InteractiveMenu(is_main_menu=False)
     menu.set_title("Construction des images Docker")
