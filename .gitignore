@@ -1,14 +1,9 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
-.cursorrules
-env.bak/
-venv.bak/
 build/
 develop-eggs/
 dist/
@@ -26,6 +21,17 @@ wheels/
 *.egg
 MANIFEST
 
+# Environnements virtuels
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.pipenv/
+.python-version
+
+# Secrets et fichiers sensibles
 .env
 .env.local
 .env.*.local
@@ -42,10 +48,12 @@ config.json
 *.token
 *.password
 
+# Logs
 *.log
 logs/
 *.log.*
 
+# Tests et couverture
 .pytest_cache/
 .coverage
 .coverage.*
@@ -53,49 +61,64 @@ htmlcov/
 .tox/
 .nox/
 .hypothesis/
+.pytest_cache/
 
+# Type checking
 .mypy_cache/
 .dmypy.json
 dmypy.json
 .pyre/
 .pytype/
 
+# IDE et éditeurs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.cursorrules
+
+# OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
+# Node.js (si utilisé)
 node_modules/
+.npm
+.yarn/
+.pnp/
 .next/
 out/
 dist/
 
-nginx/ssl/*
-!nginx/ssl/.gitkeep
+# Docker
+.dockerignore
+docker-compose.override.yml
 
+# Base de données
 *.db
 *.sqlite
 *.sqlite3
 *.db-journal
 
+# Celery
 .celerybeat-schedule
 celerybeat.pid
 
+# Processus
 *.pid
 *.sock
 
+# Redis
 .redis/
 dump.rdb
+*.rdb
 
-.python-version
-.pipenv/
+# Nginx
+nginx/ssl/*
+!nginx/ssl/.gitkeep
 
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-.hypothesis/
-
+# Dossiers spécifiques du projet
+scripts/
+tests/
