@@ -21,6 +21,10 @@ wheels/
 *.egg
 MANIFEST
 *.cursorrules
+*.env.example
+*.pyproject
+*.toml
+*.pytest.ini
 
 # Environnements virtuels
 env/
