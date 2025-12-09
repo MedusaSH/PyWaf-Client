@@ -20,6 +20,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.cursorrules
 
 # Environnements virtuels
 env/

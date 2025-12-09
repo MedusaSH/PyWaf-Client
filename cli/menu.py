@@ -54,6 +54,11 @@ class InteractiveMenu:
         if not self.is_main_menu:
             self.add_option("help", "Aide (Retour au menu principal)", lambda: "back")
     
+    def add_back_option(self):
+        """Ajoute uniquement l'option retour (à utiliser seulement à un endroit spécifique)"""
+        if not self.is_main_menu:
+            self.add_option("back", "← Retour", lambda: "back_step")
+    
     def display(self):
         os.system('cls' if os.name == 'nt' else 'clear')
         console.print()

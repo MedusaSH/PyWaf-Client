@@ -13,6 +13,12 @@ from app.security.adaptive_rate_limiter import AdaptiveRateLimiter
 from app.security.challenge_system import ChallengeSystem
 from app.security.ml_anomaly_detector import MLAnomalyDetector
 from app.security.tls_fingerprinting import TLSFingerprinter
+from app.security.headless_detector import HeadlessDetector
+from app.security.syn_cookie_protection import SYNCookieProtection
+from app.security.connection_state_protection import ConnectionStateProtection
+from app.security.geo_filtering import GeoFiltering
+from app.security.connection_metrics_analyzer import ConnectionMetricsAnalyzer
+from app.security.behavioral_malice_scorer import BehavioralMaliceScorer
 
 __all__ = [
     "SQLInjectionDetector",
@@ -30,5 +36,11 @@ __all__ = [
     "ChallengeSystem",
     "MLAnomalyDetector",
     "TLSFingerprinter",
+    "HeadlessDetector",
+    "SYNCookieProtection",
+    "ConnectionStateProtection",
+    "GeoFiltering",
+    "ConnectionMetricsAnalyzer",
+    "BehavioralMaliceScorer",
 ]
 

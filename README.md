@@ -25,7 +25,13 @@ PyWaf Client est un Web Application Firewall moderne qui protège vos applicatio
 - 📊 Réputation IP en temps réel
 - 🔒 TLS Fingerprinting
 - ⚡ Rate limiting adaptatif
-- 🎯 Configuration complète via CLI interactif
+- 🎯 Configuration complète via CLI interactif avec option "skip" pour configuration rapide
+
+**Nouvelles fonctionnalités avancées** :
+- 🧩 **Challenges de nouvelle génération** : JavaScript Tarpitting, détection headless browsers, cookies cryptographiques
+- 🛡️ **Protection DDoS avancée** : SYN Cookie, protection table d'état, filtrage géographique dynamique
+- 📈 **Analyse comportementale** : métriques par connexion (erreurs HTTP, low-and-slow, régularité temporelle)
+- 🎯 **Score de malice comportemental** : agrégation multi-facteurs avec atténuation granulaire
 
 ---
 
@@ -57,6 +63,7 @@ Le CLI vous guide à travers :
 - Configuration des protections (SQL Injection, XSS, DDoS, etc.)
 - Paramètres de rate limiting (personnalisables)
 - Configuration de la réputation IP
+- **Option "skip"** : passer toutes les étapes suivantes avec valeurs par défaut
 - Paramètres de performance
 - Construction des images Docker
 
@@ -290,26 +297,55 @@ python waf.py metrics    # Métriques en temps réel
 ## 📊 Architecture
 
 ```
-Client → Nginx (Rate Limiting) → WAF Middleware → WAF Engine
-                                              ↓
-                    ┌─────────────────────────┴─────────────────────────┐
-                    │                                                     │
-            ┌───────▼────────┐  ┌──────────────┐  ┌──────────────────┐
-            │ IP Manager     │→ │ Rate Limiter │→ │ Threat Detector  │
-            │ (Whitelist/    │  │ (Burst/Min)  │  │ (SQLi/XSS/etc)   │
-            │  Blacklist)    │  └──────────────┘  └──────────────────┘
+Client → Nginx (Rate Limiting + SYN Cookie) → WAF Middleware → WAF Engine
+                                                      ↓
+                    ┌─────────────────────────────────┴─────────────────────────────────┐
+                    │                                                                   │
+            ┌───────▼────────┐  ┌──────────────┐  ┌──────────────────┐  ┌─────────────┐
+            │ IP Manager     │→ │ Rate Limiter │→ │ Threat Detector  │→ │ Geo Filter  │
+            │ (Whitelist/    │  │ (Burst/Min)  │  │ (SQLi/XSS/etc)   │  │ (Dynamic)   │
+            │  Blacklist)    │  └──────────────┘  └──────────────────┘  └─────────────┘
             └────────────────┘
                     │
-            ┌───────▼────────┐  ┌──────────────┐  ┌──────────────────┐
-            │ Reputation     │→ │ Behavioral   │→ │ Challenge        │
-            │ Engine         │  │ Analyzer     │  │ System (PoW)     │
-            └────────────────┘  └──────────────┘  └──────────────────┘
+            ┌───────▼────────┐  ┌──────────────┐  ┌──────────────────┐  ┌─────────────┐
+            │ Reputation     │→ │ Behavioral   │→ │ Challenge        │→ │ Connection  │
+            │ Engine         │  │ Analyzer     │  │ System (PoW/     │  │ State Prot. │
+            │                │  │              │  │  Tarpit/Cookie)  │  │             │
+            └────────────────┘  └──────────────┘  └──────────────────┘  └─────────────┘
+                    │                   │
+            ┌───────▼────────┐  ┌───────▼────────┐
+            │ Malice Scorer  │→ │ Headless       │
+            │ (Multi-factor) │  │ Detector       │
+            └────────────────┘  └────────────────┘
                     │
             ┌───────▼────────┐
-            │ PostgreSQL     │  Redis (Cache)
-            │ (Logs/Rules)   │  (Rate Limiting)
+            │ PostgreSQL     │  Redis (Cache + Metrics)
+            │ (Logs/Rules)   │  (Rate Limiting + Connection Metrics)
             └────────────────┘
 ```
+
+---
+
+## 🚀 Nouvelles Fonctionnalités Avancées
+
+### Challenges de Nouvelle Génération
+- **JavaScript Tarpitting** : Puzzle client-side CPU-intensif pour ralentir les bots
+- **Détection Headless Browsers** : Identification automatique de Puppeteer, Selenium, Playwright
+- **Cookies Cryptographiques** : Challenge first-party avec cookie chiffré pour preuve de légitimité
+
+### Protection DDoS Avancée
+- **SYN Cookie** : Validation TCP handshake sans stocker l'état complet (décharge le WAF)
+- **Protection Table d'État** : Surveillance et limitation des connexions semi-ouvertes
+- **Filtrage Géographique Dynamique** : Blocage temporaire de régions identifiées comme sources d'attaque
+
+### Analyse Comportementale Avancée
+- **Métriques par Connexion** : Taux d'erreur HTTP, détection low-and-slow, régularité temporelle
+- **Score de Malice Comportemental** : Agrégation multi-facteurs (erreurs, timing, réputation IP, TLS fingerprinting)
+- **Atténuation Granulaire** : Tarpitting → Challenges difficiles → Blocage selon le score de malice
+
+### CLI Amélioré
+- **Option "skip"** : Configuration rapide avec valeurs par défaut pour toutes les étapes suivantes
+- **Navigation simplifiée** : Bouton retour uniquement au menu de configuration rapide
 
 ---
 
@@ -340,6 +376,18 @@ REPUTATION_MALICIOUS_THRESHOLD=70.0
 CHALLENGE_SYSTEM_ENABLED=true
 POW_CHALLENGE_DIFFICULTY_MIN=1
 POW_CHALLENGE_DIFFICULTY_MAX=5
+HEADLESS_DETECTION_ENABLED=true
+JAVASCRIPT_TARPIT_ENABLED=true
+ENCRYPTED_COOKIE_CHALLENGE_ENABLED=true
+
+# Protection DDoS avancée
+SYN_COOKIE_ENABLED=true
+CONNECTION_STATE_PROTECTION_ENABLED=true
+GEO_FILTERING_ENABLED=false
+
+# Analyse comportementale
+CONNECTION_METRICS_ENABLED=true
+BEHAVIORAL_MALICE_SCORING_ENABLED=true
 
 # TLS Fingerprinting
 TLS_FINGERPRINTING_ENABLED=true
@@ -358,17 +406,59 @@ Documentation interactive : http://localhost:8000/docs
 - `POST /api/rules/blacklist` - Ajouter IP à blacklist
 - `GET /api/metrics/overview` - Métriques en temps réel
 - `GET /api/logs/security` - Logs de sécurité
+- `POST /api/challenges/verify-tarpit` - Vérification challenge JavaScript Tarpit
+- `POST /api/challenges/verify-encrypted-cookie` - Vérification cookie cryptographique
+- `GET /api/geo-filtering/status` - Statut filtrage géographique
+- `POST /api/geo-filtering/block-region` - Bloquer une région
+- `GET /api/connection-metrics/{ip}` - Métriques de connexion par IP
 
 ---
 
 ## 🐛 Dépannage
 
-### Docker Desktop n'est pas démarré (Windows)
+### Erreur : "error during connect" ou "Cannot connect to the Docker daemon"
 
-```powershell
-.\scripts\check-docker.ps1
-.\scripts\wait-docker.ps1
+**Cause :** Cette erreur survient lorsque Docker Desktop n'est pas démarré ou que le daemon Docker n'est pas accessible.
+
+**Symptômes :**
+- Message d'erreur : `error during connect: Get "http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.51/...": open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified`
+- Message d'erreur : `Cannot connect to the Docker daemon at unix:///var/run/docker.sock`
+- Message d'erreur : `unable to get image 'postgres:15-alpine': error during connect`
+
+**Solutions :**
+
+**Windows :**
+1. Ouvrez Docker Desktop depuis le menu Démarrer
+2. Attendez que Docker Desktop soit complètement démarré (icône Docker dans la barre des tâches)
+3. Vérifiez que Docker Desktop est en cours d'exécution : `docker info`
+4. Réessayez la commande : `python waf.py start`
+
+**Linux :**
+```bash
+# Démarrer le service Docker
+sudo systemctl start docker
+
+# Vérifier le statut
+sudo systemctl status docker
+
+# Activer Docker au démarrage (optionnel)
+sudo systemctl enable docker
 ```
+
+**Mac :**
+1. Ouvrez Docker Desktop depuis Applications
+2. Attendez que l'icône Docker dans la barre de menu soit verte
+3. Vérifiez : `docker info`
+
+**Vérification rapide :**
+```bash
+# Vérifier si Docker est accessible
+docker info
+
+# Si l'erreur persiste, redémarrez Docker Desktop
+```
+
+**Note :** Le CLI vérifie maintenant automatiquement si Docker est disponible avant de lancer les services et affiche un message d'erreur explicite si Docker n'est pas démarré.
 
 ### Port déjà utilisé
 

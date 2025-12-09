@@ -39,6 +39,30 @@ class WAFMiddleware(BaseHTTPMiddleware):
             if analysis_result:
                 response = await call_next(request)
                 
+                ip_address = analysis_result.get("ip_address", "unknown")
+                
+                if self.waf_engine.metrics_analyzer:
+                    response_body = b""
+                    async for chunk in response.body_iterator:
+                        response_body += chunk
+                    
+                    response_size = len(response_body)
+                    
+                    self.waf_engine.metrics_analyzer.track_request_metrics(
+                        ip_address,
+                        response.status_code,
+                        response_size
+                    )
+                    
+                    from starlette.responses import Response as StarletteResponse
+                    new_response = StarletteResponse(
+                        content=response_body,
+                        status_code=response.status_code,
+                        headers=dict(response.headers),
+                        media_type=response.media_type
+                    )
+                    response = new_response
+                
                 if response.status_code >= 400:
                     await self._log_security_event(
                         db,

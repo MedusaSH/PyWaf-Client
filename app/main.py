@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.middleware import WAFMiddleware
-from app.api.routes import security, ip_list, metrics, rules, logs, reports, reputation, tls_fingerprint, challenges, test
+from app.api.routes import security, ip_list, metrics, rules, logs, reports, reputation, tls_fingerprint, challenges, test, geo_filtering, connection_metrics
 from app.core.database import engine, Base
 from app.core.logger import logger
 from app.config import settings
@@ -40,6 +40,8 @@ app.include_router(reports.router)
 app.include_router(reputation.router)
 app.include_router(tls_fingerprint.router)
 app.include_router(challenges.router)
+app.include_router(geo_filtering.router)
+app.include_router(connection_metrics.router)
 app.include_router(test.router)
 
 
