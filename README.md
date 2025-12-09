@@ -46,7 +46,7 @@ PyWaf Client est un Web Application Firewall moderne qui protège vos applicatio
 ### Étape 1 : Cloner le projet
 
 ```bash
-git clone <url-du-repository>
+git clone https://github.com/MedusaSH/PyWaf-Client/
 cd WAF-main
 ```
 
